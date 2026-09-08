@@ -14,6 +14,7 @@ export type ClothingItem = {
   kategorija: string;
   boja: string | null;
   sezona: string | null;
+  stil: string | null;
   image_url: string | null;
   broj_nosenja: number;
   omiljeno: boolean;

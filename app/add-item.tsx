@@ -1,4 +1,5 @@
 import { ThemedText } from "@/components/themed-text";
+import * as FileSystem from "expo-file-system/legacy";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
@@ -15,6 +16,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   addClothingItem,
+  analyzeClothingImage,
   getClothingItemById,
   updateClothingItem,
 } from "../services/clothing";
@@ -28,6 +30,7 @@ const SEZONE = [
   { value: "Leto", label: "Leto" },
   { value: "Sve sezone", label: "Sve sezone" },
 ];
+const STILOVI = ["Casual", "Formalno", "Sportsko", "Elegantno"];
 
 export default function AddItemScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -37,8 +40,11 @@ export default function AddItemScreen() {
   const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
   const [naziv, setNaziv] = useState("");
   const [kategorija, setKategorija] = useState("");
+  const [boja, setBoja] = useState("");
+  const [stil, setStil] = useState("");
   const [sezona, setSezona] = useState("");
   const [saving, setSaving] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
   const [loadingItem, setLoadingItem] = useState(isEditMode);
 
   useEffect(() => {
@@ -47,6 +53,7 @@ export default function AddItemScreen() {
       .then((item) => {
         setNaziv(item.naziv);
         setKategorija(item.kategorija);
+        setBoja(item.boja ?? "");
         setSezona(item.sezona ?? "");
         setExistingImageUrl(item.image_url ?? null);
       })
@@ -56,6 +63,34 @@ export default function AddItemScreen() {
       })
       .finally(() => setLoadingItem(false));
   }, [id]);
+
+  // NOVO: poziva Edge Function analyze-clothing sa slikom (base64)
+  // i automatski popunjava kategoriju/boju/stil/sezonu ako AI uspe
+  // da ih prepozna. Ako poziv padne (nema neta, funkcija pukne...),
+  // samo obavesti korisnika i ostavi polja prazna za rucni unos -
+  // ne blokira dalje popunjavanje forme.
+  const analyzeImage = async (uri: string) => {
+    setAnalyzing(true);
+    try {
+      const base64 = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      const result = await analyzeClothingImage(base64);
+
+      if (result.kategorija) setKategorija(result.kategorija);
+      if (result.boja) setBoja(result.boja);
+      if (result.stil) setStil(result.stil);
+      if (result.sezona) setSezona(result.sezona);
+    } catch (err: any) {
+      console.log("AI analiza nije uspela:", err.message);
+      Alert.alert(
+        "AI nije uspeo da prepozna sliku",
+        "Nema veze, popuni polja ručno ispod.",
+      );
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   const pickFromGallery = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -73,7 +108,9 @@ export default function AddItemScreen() {
     });
 
     if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
+      const uri = result.assets[0].uri;
+      setImageUri(uri);
+      analyzeImage(uri);
     }
   };
 
@@ -89,7 +126,9 @@ export default function AddItemScreen() {
     });
 
     if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
+      const uri = result.assets[0].uri;
+      setImageUri(uri);
+      analyzeImage(uri);
     }
   };
 
@@ -118,6 +157,7 @@ export default function AddItemScreen() {
         await updateClothingItem(id, {
           naziv: naziv.trim(),
           kategorija: kategorija.trim(),
+          boja: boja.trim() || undefined,
           sezona: sezona.trim() || undefined,
           image_url,
         });
@@ -129,6 +169,8 @@ export default function AddItemScreen() {
         await addClothingItem({
           naziv: naziv.trim(),
           kategorija: kategorija.trim(),
+          boja: boja.trim() || undefined,
+          stil: stil.trim() || undefined,
           sezona: sezona.trim() || undefined,
           image_url,
         });
@@ -178,6 +220,14 @@ export default function AddItemScreen() {
               Dodaj fotografiju
             </ThemedText>
           )}
+          {analyzing && (
+            <View style={styles.analyzingOverlay}>
+              <ActivityIndicator color="#fff" />
+              <ThemedText style={styles.analyzingText}>
+                AI analizira sliku...
+              </ThemedText>
+            </View>
+          )}
         </Pressable>
 
         <ThemedText style={styles.label}>Naziv komada</ThemedText>
@@ -203,6 +253,34 @@ export default function AddItemScreen() {
                 }
               >
                 {kat}
+              </ThemedText>
+            </Pressable>
+          ))}
+        </View>
+
+        <ThemedText style={styles.label}>
+          Boja (AI popunjava, može i ručno)
+        </ThemedText>
+        <TextInput
+          style={styles.input}
+          placeholder="npr. crvena, tamnoplava..."
+          placeholderTextColor="#644A0766"
+          value={boja}
+          onChangeText={setBoja}
+        />
+
+        <ThemedText style={styles.label}>Stil</ThemedText>
+        <View style={styles.chipRow}>
+          {STILOVI.map((s) => (
+            <Pressable
+              key={s}
+              style={[styles.chip, stil === s && styles.chipActive]}
+              onPress={() => setStil(stil === s ? "" : s)}
+            >
+              <ThemedText
+                style={stil === s ? styles.chipTextActive : styles.chipText}
+              >
+                {s}
               </ThemedText>
             </Pressable>
           ))}
@@ -300,6 +378,22 @@ const styles = StyleSheet.create({
   preview: {
     width: "100%",
     height: "100%",
+  },
+  analyzingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(58, 42, 37, 0.55)",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+  },
+  analyzingText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 13,
   },
   label: {
     fontWeight: "700",

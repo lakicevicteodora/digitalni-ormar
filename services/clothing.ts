@@ -17,6 +17,7 @@ export async function addClothingItem(item: {
   naziv: string;
   kategorija: string;
   boja?: string;
+  stil?: string;
   sezona?: string;
   image_url?: string;
 }) {
@@ -66,6 +67,7 @@ export async function getClothingItemById(id: string) {
   if (error) throw error;
   return data as ClothingItem;
 }
+
 // Ucitaj samo omiljene predmete
 export async function getLikedItems() {
   const { data, error } = await supabase
@@ -90,6 +92,7 @@ export async function toggleLiked(id: string, currentValue: boolean) {
   if (error) throw error;
   return data as ClothingItem;
 }
+
 // Grupise listu odece po kategoriji - vraca objekat { kategorija: [predmeti] }
 export function groupByCategory(
   items: ClothingItem[],
@@ -104,6 +107,7 @@ export function groupByCategory(
     {} as Record<string, ClothingItem[]>,
   );
 }
+
 // Vraca predmete koji odgovaraju datim sezonama (ili su oznaceni "Sve sezone")
 export async function getSuggestedItems(matchingSeasons: string[]) {
   const items = await getClothingItems();
@@ -114,4 +118,21 @@ export async function getSuggestedItems(matchingSeasons: string[]) {
     if (normalized === "sve sezone") return true;
     return matchingSeasons.some((s) => s.toLowerCase() === normalized);
   });
+}
+
+// NOVO: posalji sliku (base64) Edge Function-u analyze-clothing,
+// dobij nazad predlog kategorije/boje/stila/sezone sa AI-ja.
+export async function analyzeClothingImage(imageBase64: string) {
+  const { data, error } = await supabase.functions.invoke("analyze-clothing", {
+    body: { imageBase64 },
+  });
+
+  if (error) throw error;
+
+  return data as {
+    kategorija?: string;
+    boja?: string;
+    stil?: string;
+    sezona?: string;
+  };
 }

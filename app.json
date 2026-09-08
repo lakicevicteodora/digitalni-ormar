@@ -74,7 +74,11 @@
           "icon": "./assets/images/icon.png",
           "color": "#3a2a25"
         }
-      ]
+      ],
+      "expo-font",
+      "expo-image",
+      "expo-status-bar",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
