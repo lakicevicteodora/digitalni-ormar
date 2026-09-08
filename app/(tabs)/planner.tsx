@@ -48,6 +48,27 @@ export default function PlannerScreen() {
     });
   };
 
+  // AI Banner kartica za brzi stajling
+  const renderAICard = () => (
+    <Pressable
+      style={styles.aiBanner}
+      onPress={() => router.push("/create-outfit")}
+    >
+      <View style={styles.aiBannerContent}>
+        <ThemedText style={styles.aiBannerTitle}>
+          Nemaš ideju šta da obučeš? ✨
+        </ThemedText>
+        <ThemedText style={styles.aiBannerSubtitle}>
+          Pusti AI stilistu da izabere savršenu kombinaciju za tebe iz tvog
+          ormana.
+        </ThemedText>
+      </View>
+      <View style={styles.aiBannerBadge}>
+        <ThemedText style={styles.aiBannerBadgeText}>Probaj AI</ThemedText>
+      </View>
+    </Pressable>
+  );
+
   const renderContent = () => {
     if (loading) {
       return (
@@ -70,14 +91,18 @@ export default function PlannerScreen() {
 
     if (outfits.length === 0) {
       return (
-        <ThemedView style={styles.centered}>
-          <ThemedText style={styles.emptyText}>
-            Nemaš još planiranih autfita.
-          </ThemedText>
-          <ThemedText style={styles.emptySubtext}>
-            Kreiraj prvi autfit za neki dan.
-          </ThemedText>
-        </ThemedView>
+        <View style={styles.emptyContainer}>
+          {renderAICard()}
+          <ThemedView style={styles.centeredEmpty}>
+            <ThemedText style={styles.emptyText}>
+              Nemaš još sačuvanih autfita.
+            </ThemedText>
+            <ThemedText style={styles.emptySubtext}>
+              Kreiraj prvi autfit za neki dan ili iskoristi AI pomoć na kartici
+              iznad.
+            </ThemedText>
+          </ThemedView>
+        </View>
       );
     }
 
@@ -87,6 +112,7 @@ export default function PlannerScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+        ListHeaderComponent={renderAICard}
         renderItem={({ item }) => (
           <Pressable
             style={styles.card}
@@ -160,6 +186,17 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: "transparent",
   },
+  emptyContainer: {
+    padding: 16,
+    flex: 1,
+  },
+  centeredEmpty: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+    backgroundColor: "transparent",
+  },
   loadingText: {
     marginTop: 10,
     color: "#644A07",
@@ -176,9 +213,50 @@ const styles = StyleSheet.create({
   emptySubtext: {
     marginTop: 4,
     color: "#644A07",
+    textAlign: "center",
   },
   list: {
     padding: 16,
+  },
+  aiBanner: {
+    backgroundColor: "#644A07",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    shadowColor: "#3a2a25",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  aiBannerContent: {
+    flex: 1,
+    marginRight: 10,
+  },
+  aiBannerTitle: {
+    color: "#FFF",
+    fontSize: 15,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  aiBannerSubtitle: {
+    color: "#FFDBDB",
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  aiBannerBadge: {
+    backgroundColor: "#FFDBDB",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  aiBannerBadgeText: {
+    color: "#3a2a25",
+    fontSize: 12,
+    fontWeight: "700",
   },
   card: {
     backgroundColor: "#fff",
