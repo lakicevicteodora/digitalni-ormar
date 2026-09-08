@@ -1,4 +1,5 @@
 import { ClothingItem, Outfit } from "../types/database";
+import { getClothingItems } from "./clothing";
 import { supabase } from "./supabase";
 
 // Ucitaj sve autfite ulogovanog korisnika, sortirano po datumu
@@ -25,7 +26,6 @@ export async function getOutfitById(id: string) {
 }
 
 // Ucitaj komade odece koji pripadaju odredjenom autfitu
-// (spaja outfit_items sa clothing_items da dobijemo pune podatke o odeci)
 export async function getOutfitItems(outfitId: string) {
   const { data, error } = await supabase
     .from("outfit_items")
@@ -33,7 +33,6 @@ export async function getOutfitItems(outfitId: string) {
     .eq("outfit_id", outfitId);
 
   if (error) throw error;
-  // clothing_items dolazi kao ugnjezdeni objekat - izvlacimo ga u ravnu listu
   return (data ?? []).map((row: any) => row.clothing_items as ClothingItem);
 }
 
@@ -68,12 +67,13 @@ export async function addItemToOutfit(
   if (error) throw error;
 }
 
-// Obrisi autfit (outfit_items se brisu automatski preko "on delete cascade")
+// Obrisi autfit
 export async function deleteOutfit(id: string) {
   const { error } = await supabase.from("outfits").delete().eq("id", id);
   if (error) throw error;
 }
-// Ucitaj sve autfite SA slikama njihovih komada (za prikaz na Planer listi)
+
+// Ucitaj sve autfite SA slikama njihovih komada
 export async function getOutfitsWithItems() {
   const outfits = await getOutfits();
 
@@ -88,4 +88,29 @@ export async function getOutfitsWithItems() {
   );
 
   return outfitsWithImages;
+}
+
+// Poziva AI agenta (suggest-outfit) koji generise autfit od postojece odece
+export async function generateAIOutfit(prilika?: string, vreme?: string) {
+  const items = await getClothingItems();
+
+  if (items.length === 0) {
+    throw new Error("Nemate unetih komada odeće u ormanu.");
+  }
+
+  const { data, error } = await supabase.functions.invoke("suggest-outfit", {
+    body: { items, prilika, vreme },
+  });
+
+  if (error) throw error;
+
+  const selectedItems = items.filter((item) =>
+    data.selected_item_ids?.includes(item.id),
+  );
+
+  return {
+    selectedItems,
+    naslov: data.naslov as string,
+    obrazlozenje: data.obrazlozenje as string,
+  };
 }

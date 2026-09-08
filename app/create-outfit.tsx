@@ -14,7 +14,11 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getClothingItems, groupByCategory } from "../services/clothing";
-import { addItemToOutfit, createOutfit } from "../services/outfits";
+import {
+  addItemToOutfit,
+  createOutfit,
+  generateAIOutfit,
+} from "../services/outfits";
 import { ClothingItem } from "../types/database";
 
 function todayString() {
@@ -32,6 +36,7 @@ export default function CreateOutfitScreen() {
   const [clothingItems, setClothingItems] = useState<ClothingItem[]>([]);
   const [loadingItems, setLoadingItems] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [generatingAI, setGeneratingAI] = useState(false);
 
   useEffect(() => {
     getClothingItems()
@@ -46,6 +51,35 @@ export default function CreateOutfitScreen() {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
+  };
+
+  const handleGenerateAI = async () => {
+    if (clothingItems.length === 0) {
+      Alert.alert(
+        "Orman je prazan",
+        "Dodaj prvo neku odeću u orman kako bi AI napravio kombinaciju.",
+      );
+      return;
+    }
+
+    setGeneratingAI(true);
+    try {
+      const result = await generateAIOutfit("Casual izlazak", "Umereno sveže");
+
+      if (result.selectedItems && result.selectedItems.length > 0) {
+        const ids = result.selectedItems.map((item) => item.id);
+        setSelectedIds(ids); // Resetuje stare i postavlja nove izabrane ID-eve
+      }
+      if (result.naslov) setNaziv(result.naslov);
+      if (result.obrazlozenje) setNapomena(result.obrazlozenje);
+    } catch (err: any) {
+      Alert.alert(
+        "Greška pri AI stajlingu",
+        err.message ?? "AI nije uspeo da generiše outfit.",
+      );
+    } finally {
+      setGeneratingAI(false);
+    }
   };
 
   const handleSave = async () => {
@@ -100,6 +134,22 @@ export default function CreateOutfitScreen() {
         </Pressable>
         <ThemedText style={styles.title}>Kreiraj autfit</ThemedText>
 
+        <Pressable
+          style={styles.aiButton}
+          onPress={handleGenerateAI}
+          disabled={generatingAI}
+        >
+          {generatingAI ? (
+            <ActivityIndicator color="#FFF" />
+          ) : (
+            <ThemedText style={styles.aiButtonText}>
+              {selectedIds.length > 0
+                ? "Ponudi drugu kombinaciju 🔄"
+                : "Generiši outfit uz AI ✨"}
+            </ThemedText>
+          )}
+        </Pressable>
+
         <ThemedText style={styles.label}>Datum</ThemedText>
         <Pressable
           style={styles.dateButton}
@@ -133,11 +183,12 @@ export default function CreateOutfitScreen() {
 
         <ThemedText style={styles.label}>Napomena (opciono)</ThemedText>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { height: 80 }]}
           placeholder="npr. Za sastanak posle podne"
           placeholderTextColor="#644A0766"
           value={napomena}
           onChangeText={setNapomena}
+          multiline
         />
 
         <ThemedText style={styles.label}>
@@ -245,13 +296,30 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "700",
     textAlign: "center",
-    marginBottom: 24,
+    marginBottom: 16,
     color: "#3a2a25",
+  },
+  aiButton: {
+    backgroundColor: "#644A07",
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  aiButtonText: {
+    color: "#FFF",
+    fontWeight: "700",
+    fontSize: 15,
   },
   label: {
     fontWeight: "700",
     marginBottom: 8,
-    marginTop: 16,
+    marginTop: 12,
     color: "#3a2a25",
     fontSize: 15,
   },
