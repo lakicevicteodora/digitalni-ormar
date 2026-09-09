@@ -33,13 +33,16 @@ const SEZONE = [
 const STILOVI = ["Casual", "Formalno", "Sportsko", "Elegantno"];
 
 export default function AddItemScreen() {
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, kategorija: kategorijaParam } = useLocalSearchParams<{
+    id?: string;
+    kategorija?: string;
+  }>();
   const isEditMode = !!id;
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
   const [naziv, setNaziv] = useState("");
-  const [kategorija, setKategorija] = useState("");
+  const [kategorija, setKategorija] = useState(kategorijaParam ?? "");
   const [boja, setBoja] = useState("");
   const [stil, setStil] = useState("");
   const [sezona, setSezona] = useState("");

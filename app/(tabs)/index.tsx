@@ -20,7 +20,12 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { getClothingItems, getSuggestedItems } from "../../services/clothing";
+import {
+  getClothingItems,
+  getSuggestedItems,
+  getWardrobeGapSuggestion,
+  WardrobeGap,
+} from "../../services/clothing";
 import { getOutfits } from "../../services/outfits";
 import { ClothingItem, Outfit } from "../../types/database";
 
@@ -35,6 +40,7 @@ export default function DashboardScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [allItems, setAllItems] = useState<ClothingItem[]>([]);
   const [suggestedItems, setSuggestedItems] = useState<ClothingItem[]>([]);
+  const [wardrobeGap, setWardrobeGap] = useState<WardrobeGap | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -49,6 +55,9 @@ export default function DashboardScreen() {
 
       getClothingItems()
         .then(setAllItems)
+        .catch(() => {});
+      getWardrobeGapSuggestion()
+        .then(setWardrobeGap)
         .catch(() => {});
     }, []),
   );
@@ -214,6 +223,24 @@ export default function DashboardScreen() {
             </ScrollView>
           </ThemedView>
         )}
+        {wardrobeGap && (
+          <ThemedView style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>
+              Predlog za kupovinu
+            </ThemedText>
+            <ThemedView style={styles.gapCard}>
+              <Text style={styles.gapText}>{wardrobeGap.poruka}</Text>
+              <Pressable
+                style={styles.gapButton}
+                onPress={() =>
+                  router.push(`/add-item?kategorija=${wardrobeGap.kategorija}`)
+                }
+              >
+                <Text style={styles.gapButtonText}>Dodaj komad odeće</Text>
+              </Pressable>
+            </ThemedView>
+          </ThemedView>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -239,7 +266,7 @@ const styles = StyleSheet.create({
   },
   subGreeting: {
     fontSize: 15,
-    color: "#644A07",
+    color: "#3a2a25",
     marginTop: 4,
   },
   searchWrapper: {
@@ -287,11 +314,11 @@ const styles = StyleSheet.create({
   },
   suggestionCategory: {
     fontSize: 12,
-    color: "#644A07",
+    color: "#3a2a25",
   },
   noResultsText: {
     padding: 14,
-    color: "#644A07",
+    color: "#3a2a25",
     fontSize: 14,
     textAlign: "center",
   },
@@ -347,7 +374,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   outfitNote: {
-    color: "#644A07",
+    color: "#3a2a25",
     fontSize: 13,
     marginTop: 4,
   },
@@ -362,7 +389,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  emptyOutfitText: { color: "#644A07" },
+  emptyOutfitText: { color: "#3a2a25" },
   emptyOutfitLink: {
     color: "#3a2a25",
     fontWeight: "700",
@@ -394,5 +421,27 @@ const styles = StyleSheet.create({
   suggestedName: {
     fontSize: 11,
     color: "#3a2a25",
+  },
+  gapCard: {
+    backgroundColor: "#3a2a25",
+    borderRadius: 14,
+    padding: 18,
+  },
+  gapText: {
+    color: "#FFDBDB",
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  gapButton: {
+    marginTop: 14,
+    backgroundColor: "#FFDBDB",
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  gapButtonText: {
+    color: "#3a2a25",
+    fontWeight: "700",
+    fontSize: 14,
   },
 });

@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 10,
-    color: "#644A07",
+    color: "#3a2a25",
   },
   errorText: {
     color: "#c0392b",
@@ -212,14 +212,14 @@ const styles = StyleSheet.create({
   },
   emptySubtext: {
     marginTop: 4,
-    color: "#644A07",
+    color: "#3a2a25",
     textAlign: "center",
   },
   list: {
     padding: 16,
   },
   aiBanner: {
-    backgroundColor: "#644A07",
+    backgroundColor: "#3a2a25",
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   cardDate: {
     fontWeight: "700",
     fontSize: 13,
-    color: "#644A07",
+    color: "#3a2a25",
   },
   cardTitle: {
     fontWeight: "600",

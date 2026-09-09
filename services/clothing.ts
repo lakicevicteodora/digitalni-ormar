@@ -136,3 +136,52 @@ export async function analyzeClothingImage(imageBase64: string) {
     sezona?: string;
   };
 }
+
+const KATEGORIJE_ZA_PRAZNINE = [
+  "Tops",
+  "Bottoms",
+  "Shoes",
+  "Dresses",
+  "Accessories",
+];
+
+const NAZIV_MNOZINA: Record<string, string> = {
+  Tops: "gornjih delova",
+  Bottoms: "donjih delova",
+  Shoes: "obuće",
+  Dresses: "haljina",
+  Accessories: "aksesoara",
+};
+
+export type WardrobeGap = {
+  kategorija: string;
+  count: number;
+  poruka: string;
+};
+
+// Analizira orman i pronalazi kategoriju koja najvise "kasni" za ostalima
+export async function getWardrobeGapSuggestion(): Promise<WardrobeGap | null> {
+  const items = await getClothingItems();
+  if (items.length < 5) return null; // premalo predmeta za pouzdan predlog
+
+  const counts: Record<string, number> = {};
+  KATEGORIJE_ZA_PRAZNINE.forEach((k) => (counts[k] = 0));
+  items.forEach((item) => {
+    if (counts[item.kategorija] !== undefined) counts[item.kategorija]++;
+  });
+
+  const entries = Object.entries(counts);
+  const maxCount = Math.max(...entries.map(([, c]) => c));
+  const [minKategorija, minCount] = entries.reduce((min, curr) =>
+    curr[1] < min[1] ? curr : min,
+  );
+
+  if (maxCount === 0 || minCount >= maxCount / 2) return null;
+
+  const poruka =
+    minCount === 0
+      ? `Nemaš nijedan komad u kategoriji "${NAZIV_MNOZINA[minKategorija]}" — razmisli da dokupiš nešto odatle da lakše kombinuješ autfite.`
+      : `Imaš dosta stvari u ormanu, ali malo ${NAZIV_MNOZINA[minKategorija]} (samo ${minCount}). Kupovina u toj kategoriji bi ti otvorila više kombinacija.`;
+
+  return { kategorija: minKategorija, count: minCount, poruka };
+}

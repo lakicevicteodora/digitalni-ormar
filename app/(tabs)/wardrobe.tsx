@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 10,
-    color: "#644A07",
+    color: "#3a2a25",
   },
   errorText: {
     color: "#c0392b",
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   },
   emptySubtext: {
     marginTop: 4,
-    color: "#644A07",
+    color: "#3a2a25",
   },
   scrollContent: {
     paddingVertical: 16,

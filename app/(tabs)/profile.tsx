@@ -230,14 +230,14 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 11,
-    color: "#644A07",
+    color: "#3a2a25",
     marginTop: 6,
     textAlign: "center",
   },
   sectionTitle: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#644A07",
+    color: "#3a2a25",
     marginTop: 24,
     marginBottom: 8,
     marginHorizontal: 24,
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   settingsRowText: { fontSize: 15, fontWeight: "600", color: "#3a2a25" },
-  chevron: { fontSize: 20, color: "#644A07" },
+  chevron: { fontSize: 20, color: "#3a2a25" },
   divider: { height: 1, backgroundColor: "#FFDBDB", marginLeft: 16 },
   logoutButton: {
     marginHorizontal: 20,
