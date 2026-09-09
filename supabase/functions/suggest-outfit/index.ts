@@ -6,7 +6,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { items, prilika, vreme } = await req.json();
+    const { items, prilika, vreme, excludeItemIds } = await req.json();
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return new Response(
@@ -40,28 +40,36 @@ Deno.serve(async (req) => {
       sezona: item.sezona || "sve sezone",
     }));
 
+    const izbegavajBlok =
+      excludeItemIds && excludeItemIds.length > 0
+        ? `\nVAŽNO: Korisnik je već video kombinaciju sa ID-jevima [${excludeItemIds.join(", ")}] i traži DRUGAČIJU. Obavezno izaberi bar jedan drugačiji komad odeće u odnosu na tu listu — nemoj vratiti identičnu kombinaciju.`
+        : "";
+
     const promptText = `
-    Ti si lični modni stilista. Tvoj zadatak je da sastaviš najbolji mogući autfit od ponuđenih komada odeće iz baze.
-    
-    Kontekst za autfit:
-    - Prilika: ${prilika || "svakodnevni izlazak"}
-    - Vremenske prilike / Sezona: ${vreme || "umereno"}
+Ti si lični modni stilista. Sastavi najbolji mogući autfit od PONUĐENIH komada odeće — svi predmeti su već filtrirani da odgovaraju trenutnoj sezoni/temperaturi.
 
-    Dostupna odeća u ormanu (JSON niz):
-    ${JSON.stringify(wardrobeList, null, 2)}
+Kontekst za autfit:
+- Prilika: ${prilika || "svakodnevni izlazak"}
+- Trenutno vreme: ${vreme || "nepoznato"}
 
-    PRAVILA:
-    1. Ako izabereš HALJINU ("Dresses"), NEMOJ birati "Tops" ili "Bottoms". Uz nju ide samo Obuća ("Shoes") i/ili Aksesoari ("Accessories").
-    2. Ako ne biraš haljinu, izaberi standardno 1x "Tops" + 1x "Bottoms" + 1x "Shoes".
-    3. Vrati ISKLJUČIVO validan JSON sa tačnom strukturom navedenom ispod, bez ikakvog dodavanja markdown tagova ili teksta van JSON-a.
+Dostupna odeća u ormanu (JSON niz):
+${JSON.stringify(wardrobeList, null, 2)}
+${izbegavajBlok}
 
-    Očekivani format odgovora:
-    {
-      "selected_item_ids": ["id1", "id2", "id3"],
-      "naslov": "Kratak atraktivan naziv autfita",
-      "obrazlozenje": "Kratko objašnjenje zašto ove boje i stilovi idu zajedno za navedenu priliku."
-    }
-    `;
+PRAVILA:
+1. Postoje DVA ravnopravna tipa kombinacije — nemoj automatski favorizovati jedan:
+   a) Haljina (Dresses) + Obuća (Shoes) + opciono Aksesoari — NIKAD ne dodaji Tops ili Bottoms uz haljinu.
+   b) Gornji deo (Tops) + Donji deo (Bottoms) + Obuća (Shoes) + opciono Aksesoari.
+2. Ako u ponudi postoji bar jedna haljina koja odgovara prilici, opcija (a) je JEDNAKO validna kao opcija (b) — ne biraj (b) samo zato što je uobičajenije.
+3. Vrati ISKLJUČIVO validan JSON, bez markdown tagova.
+
+Format odgovora:
+{
+  "selected_item_ids": ["id1", "id2", "id3"],
+  "naslov": "Kratak atraktivan naziv autfita",
+  "obrazlozenje": "Kratko objašnjenje zašto ove boje i stilovi idu zajedno za navedenu priliku."
+}
+`;
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
@@ -70,6 +78,11 @@ Deno.serve(async (req) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ parts: [{ text: promptText }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            temperature: 0.9,
+            thinkingConfig: { thinkingLevel: "low" },
+          },
         }),
       },
     );

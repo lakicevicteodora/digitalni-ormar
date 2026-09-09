@@ -53,3 +53,8 @@ export async function getMyStats() {
     outfitsCount: outfitsCount.count ?? 0,
   };
 }
+
+export async function changePassword(newPassword: string) {
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw error;
+}

@@ -1,9 +1,9 @@
+import { Stack } from "expo-router";
 import {
   DarkTheme,
   DefaultTheme,
   ThemeProvider,
-} from "@react-navigation/native";
-import { Stack } from "expo-router";
+} from "expo-router/react-navigation";
 import { StatusBar } from "expo-status-bar";
 import { Image, StyleSheet, Text, View } from "react-native";
 import "react-native-reanimated";
@@ -63,6 +63,11 @@ function RootLayoutNav() {
           <Stack.Screen name="item-detail" options={{ headerShown: false }} />
           <Stack.Screen name="outfit-detail" options={{ headerShown: false }} />
           <Stack.Screen name="liked-items" options={{ headerShown: false }} />
+          <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="change-password"
+            options={{ headerShown: false }}
+          />
         </Stack.Protected>
 
         <Stack.Protected guard={hasSeenOnboarding && !isLoggedIn}>

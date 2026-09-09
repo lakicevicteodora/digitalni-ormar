@@ -6,10 +6,9 @@ import {
   requestNotificationPermission,
   scheduleDailyOutfitReminder,
 } from "@/services/notifications";
-import { getMyProfile, getMyStats, updateMyProfile } from "@/services/profile";
+import { getMyProfile, getMyStats } from "@/services/profile";
 import { supabase } from "@/services/supabase";
 import { Profile } from "@/types/database";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import {
@@ -18,7 +17,6 @@ import {
   Pressable,
   StyleSheet,
   Switch,
-  TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -30,10 +28,6 @@ export default function ProfileScreen() {
     likedCount: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
-  const [ime, setIme] = useState("");
-  const [lokacija, setLokacija] = useState("");
-  const [saving, setSaving] = useState(false);
   const [remindersOn, setRemindersOn] = useState(false);
 
   useFocusEffect(
@@ -42,8 +36,6 @@ export default function ProfileScreen() {
       Promise.all([getMyProfile(), getMyStats(), getLikedItems()])
         .then(([profileData, statsData, likedItems]) => {
           setProfile(profileData);
-          setIme(profileData.ime ?? "");
-          setLokacija(profileData.lokacija ?? "");
           setStats({ ...statsData, likedCount: likedItems.length });
         })
         .catch((err) =>
@@ -52,22 +44,6 @@ export default function ProfileScreen() {
         .finally(() => setLoading(false));
     }, []),
   );
-
-  const handleSaveProfile = async () => {
-    setSaving(true);
-    try {
-      const updated = await updateMyProfile({
-        ime: ime.trim() || null,
-        lokacija: lokacija.trim() || null,
-      });
-      setProfile(updated);
-      setEditing(false);
-    } catch (err: any) {
-      Alert.alert("Greška", err.message ?? "Čuvanje nije uspelo.");
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleToggleReminders = async (value: boolean) => {
     if (value) {
@@ -97,7 +73,7 @@ export default function ProfileScreen() {
   if (loading) {
     return (
       <ThemedView style={styles.centered}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color="#3a2a25" />
       </ThemedView>
     );
   }
@@ -110,52 +86,24 @@ export default function ProfileScreen() {
             {(profile?.ime?.[0] ?? profile?.email?.[0] ?? "?").toUpperCase()}
           </ThemedText>
         </ThemedView>
-
-        {editing ? (
-          <>
-            <TextInput
-              style={styles.editInput}
-              placeholder="Ime i prezime"
-              placeholderTextColor="#888"
-              value={ime}
-              onChangeText={setIme}
-            />
-            <TextInput
-              style={styles.editInput}
-              placeholder="Lokacija (grad)"
-              placeholderTextColor="#888"
-              value={lokacija}
-              onChangeText={setLokacija}
-            />
-            <Pressable
-              style={styles.saveButton}
-              onPress={handleSaveProfile}
-              disabled={saving}
-            >
-              {saving ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <ThemedText style={styles.saveButtonText}>Sačuvaj</ThemedText>
-              )}
-            </Pressable>
-          </>
-        ) : (
-          <>
-            <ThemedText style={styles.name}>
-              {profile?.ime || "Bez imena"}
+        <ThemedText style={styles.name}>
+          {profile?.ime || "Bez imena"}
+        </ThemedText>
+        <ThemedText style={styles.email}>{profile?.email}</ThemedText>
+        <ThemedView style={styles.metaRow}>
+          {profile?.lokacija ? (
+            <ThemedText style={styles.metaText}>
+              📍 {profile.lokacija}
             </ThemedText>
-            <ThemedText style={styles.email}>{profile?.email}</ThemedText>
-            {profile?.lokacija ? (
-              <ThemedText style={styles.location}>
-                📍 {profile.lokacija}
-              </ThemedText>
-            ) : null}
-            <Pressable style={styles.editLink} onPress={() => setEditing(true)}>
-              <ThemedText style={styles.editLinkText}>Izmeni profil</ThemedText>
-            </Pressable>
-          </>
-        )}
+          ) : null}
+          {profile?.broj_telefona ? (
+            <ThemedText style={styles.metaText}>
+              📞 {profile.broj_telefona}
+            </ThemedText>
+          ) : null}
+        </ThemedView>
       </ThemedView>
+
       <ThemedView style={styles.statsRow}>
         <ThemedView style={styles.statCard}>
           <ThemedText style={styles.statNumber}>
@@ -179,31 +127,47 @@ export default function ProfileScreen() {
           <ThemedText style={styles.statLabel}>Omiljeno</ThemedText>
         </Pressable>
       </ThemedView>
-      <ThemedView style={styles.row}>
-        <ThemedText style={styles.rowLabel}>Dnevni podsetnik (20h)</ThemedText>
-        <Switch value={remindersOn} onValueChange={handleToggleReminders} />
+
+      <ThemedText style={styles.sectionTitle}>Nalog</ThemedText>
+      <ThemedView style={styles.card}>
+        <Pressable
+          style={styles.settingsRow}
+          onPress={() => router.push("/edit-profile")}
+        >
+          <ThemedText style={styles.settingsRowText}>Izmeni profil</ThemedText>
+          <ThemedText style={styles.chevron}>›</ThemedText>
+        </Pressable>
+        <ThemedView style={styles.divider} />
+        <Pressable
+          style={styles.settingsRow}
+          onPress={() => router.push("/change-password")}
+        >
+          <ThemedText style={styles.settingsRowText}>
+            Promeni lozinku
+          </ThemedText>
+          <ThemedText style={styles.chevron}>›</ThemedText>
+        </Pressable>
       </ThemedView>
+
+      <ThemedText style={styles.sectionTitle}>Podešavanja</ThemedText>
+      <ThemedView style={styles.card}>
+        <ThemedView style={styles.settingsRow}>
+          <ThemedText style={styles.settingsRowText}>
+            Dnevni podsetnik (20h)
+          </ThemedText>
+          <Switch value={remindersOn} onValueChange={handleToggleReminders} />
+        </ThemedView>
+      </ThemedView>
+
       <Pressable style={styles.logoutButton} onPress={handleLogout}>
         <ThemedText style={styles.logoutButtonText}>Odjavi se</ThemedText>
-      </Pressable>
-
-      <Pressable
-        style={styles.secretReset}
-        onPress={() => AsyncStorage.removeItem("hasSeenOnboarding")}
-      >
-        <ThemedText style={{ color: "#3a2a25" }}>
-          [DEV] Resetuj onboarding
-        </ThemedText>
       </Pressable>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: "#FFDBDB",
-  },
+  screen: { flex: 1, backgroundColor: "#FFDBDB" },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
   header: {
     alignItems: "center",
@@ -230,31 +194,13 @@ const styles = StyleSheet.create({
   },
   name: { fontSize: 22, fontWeight: "700", color: "#3a2a25" },
   email: { fontSize: 13, color: "#644A07", marginTop: 2 },
-  location: { fontSize: 14, marginTop: 6, color: "#3a2a25" },
-  editLink: { marginTop: 10, paddingVertical: 4 },
-  editLinkText: {
-    color: "#3a2a25",
-    fontWeight: "700",
-    textDecorationLine: "underline",
-  },
-  editInput: {
-    width: "100%",
-    borderWidth: 1,
-    borderColor: "#FFC6C6",
-    borderRadius: 8,
-    padding: 10,
+  metaRow: {
+    flexDirection: "row",
+    gap: 14,
     marginTop: 8,
-    backgroundColor: "#fff",
-    color: "#3a2a25",
+    backgroundColor: "transparent",
   },
-  saveButton: {
-    marginTop: 12,
-    backgroundColor: "#3a2a25",
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-  },
-  saveButtonText: { color: "#fff", fontWeight: "700" },
+  metaText: { fontSize: 13, color: "#3a2a25" },
   statsRow: {
     flexDirection: "row",
     marginHorizontal: 20,
@@ -288,31 +234,43 @@ const styles = StyleSheet.create({
     marginTop: 6,
     textAlign: "center",
   },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#644A07",
+    marginTop: 24,
+    marginBottom: 8,
+    marginHorizontal: 24,
+  },
+  card: {
     marginHorizontal: 20,
     backgroundColor: "#fff",
     borderRadius: 12,
-    padding: 16,
-    marginTop: 20,
+    shadowColor: "#3a2a25",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    overflow: "hidden",
   },
-  rowLabel: { fontSize: 15, fontWeight: "600", color: "#3a2a25" },
+  settingsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    backgroundColor: "transparent",
+  },
+  settingsRowText: { fontSize: 15, fontWeight: "600", color: "#3a2a25" },
+  chevron: { fontSize: 20, color: "#644A07" },
+  divider: { height: 1, backgroundColor: "#FFDBDB", marginLeft: 16 },
   logoutButton: {
     marginHorizontal: 20,
-    marginTop: 20,
+    marginTop: 28,
     backgroundColor: "#3a2a25",
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: "center",
   },
   logoutButtonText: { color: "#fff", fontWeight: "700" },
-
-  secretReset: {
-    marginTop: 15,
-    alignSelf: "center",
-    padding: 10,
-    opacity: 0,
-  },
 });

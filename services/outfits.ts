@@ -1,6 +1,11 @@
 import { ClothingItem, Outfit } from "../types/database";
-import { getClothingItems } from "./clothing";
+import { getClothingItems, getSuggestedItems } from "./clothing";
 import { supabase } from "./supabase";
+import {
+  describeWeatherCode,
+  getCurrentWeather,
+  getSeasonsForTemperature,
+} from "./weather";
 
 // Ucitaj sve autfite ulogovanog korisnika, sortirano po datumu
 export async function getOutfits() {
@@ -91,15 +96,28 @@ export async function getOutfitsWithItems() {
 }
 
 // Poziva AI agenta (suggest-outfit) koji generise autfit od postojece odece
-export async function generateAIOutfit(prilika?: string, vreme?: string) {
-  const items = await getClothingItems();
+export async function generateAIOutfit(
+  prilika?: string,
+  excludeItemIds?: string[],
+) {
+  let items: ClothingItem[] = [];
+  let vremeOpis = "nepoznata temperatura";
+
+  try {
+    const weather = await getCurrentWeather();
+    const matchingSeasons = getSeasonsForTemperature(weather.temperature);
+    items = await getSuggestedItems(matchingSeasons);
+    vremeOpis = `${weather.temperature}°C, ${describeWeatherCode(weather.weatherCode)}`;
+  } catch {
+    items = await getClothingItems();
+  }
 
   if (items.length === 0) {
-    throw new Error("Nemate unetih komada odeće u ormanu.");
+    throw new Error("Nemate odeću koja odgovara trenutnoj sezoni u ormanu.");
   }
 
   const { data, error } = await supabase.functions.invoke("suggest-outfit", {
-    body: { items, prilika, vreme },
+    body: { items, prilika, vreme: vremeOpis, excludeItemIds },
   });
 
   if (error) throw error;

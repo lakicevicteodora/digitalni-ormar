@@ -4,6 +4,8 @@ export type Profile = {
   ime: string | null;
   avatar_url: string | null;
   lokacija: string | null;
+  pol: string | null;
+  broj_telefona: string | null;
   created_at: string;
 };
 

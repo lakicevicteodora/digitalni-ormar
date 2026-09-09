@@ -64,11 +64,14 @@ export default function CreateOutfitScreen() {
 
     setGeneratingAI(true);
     try {
-      const result = await generateAIOutfit("Casual izlazak", "Umereno sveže");
+      const result = await generateAIOutfit(
+        "Casual izlazak",
+        selectedIds.length > 0 ? selectedIds : undefined,
+      );
 
       if (result.selectedItems && result.selectedItems.length > 0) {
         const ids = result.selectedItems.map((item) => item.id);
-        setSelectedIds(ids); // Resetuje stare i postavlja nove izabrane ID-eve
+        setSelectedIds(ids);
       }
       if (result.naslov) setNaziv(result.naslov);
       if (result.obrazlozenje) setNapomena(result.obrazlozenje);
